@@ -28,7 +28,8 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-project(RandomX)
+project(RandomX VERSION 1.0.0)
+include(GNUInstallDirs)
 
 set(randomx_sources
 src/aes_hash.cpp
@@ -209,24 +210,31 @@ if(ARCH_ID STREQUAL "riscv64")
   add_flag("-march=${RVARCH}")
 endif()
 
-set(RANDOMX_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/src" CACHE STRING "RandomX Include path")
+add_library(randomx)
+target_sources(randomx
+    PRIVATE
+        ${randomx_sources}
+    )
 
-add_library(randomx ${randomx_sources})
+target_include_directories(randomx
+        PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/monero/>
+        )
 
 if(TARGET generate-asm)
   add_dependencies(randomx generate-asm)
 endif()
 
-set_property(TARGET randomx PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET randomx PROPERTY CXX_STANDARD 11)
-set_property(TARGET randomx PROPERTY CXX_STANDARD_REQUIRED ON)
-set_property(TARGET randomx PROPERTY PUBLIC_HEADER src/randomx.h)
+set_target_properties(randomx PROPERTIES
+  POSITION_INDEPENDENT_CODE ON
+  CXX_STANDARD 11
+  CXX_STANDARD_REQUIRED ON
+  )
 
-include(GNUInstallDirs)
-install(TARGETS randomx
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+monero_install_library(randomx)
+install(FILES src/randomx.h
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/monero/randomx/")
 
 add_executable(randomx-tests
   src/tests/tests.cpp)
